@@ -354,9 +354,9 @@ export default function SemesterPage() {
                     <h1 className="text-5xl font-extrabold text-[var(--color-text)] tracking-tight">{semester.name}</h1>
                 </div>
 
-                <div className="flex flex-col md:grid md:grid-cols-2 md:gap-6 md:items-stretch">
+                <div className="flex flex-col gap-4 md:grid md:grid-cols-2 md:gap-6 md:items-stretch">
                     {avgPoints !== null && avgGrade !== null && (
-                        <div className="bg-[var(--glass-bg)] backdrop-blur-xl p-6 pb-20 md:pb-6 rounded-3xl border border-[var(--glass-border)] shadow-2xl flex flex-col justify-center items-center text-center min-h-[165px] gap-4">
+                        <div className="bg-[var(--glass-bg)] backdrop-blur-xl p-6 rounded-3xl border border-[var(--glass-border)] shadow-2xl flex flex-col justify-center items-center text-center gap-4">
                             <SemesterGradeRing grade={avgGrade} points={avgPoints} />
                             {tendency !== null && q1Avg !== null && q2Avg !== null && (
                                 <div className="flex items-center gap-2.5">
@@ -384,12 +384,7 @@ export default function SemesterPage() {
                     )}
 
                     {(semester.subjects.length > 0) && (
-                        <div className={clsx(
-                            "h-[210px] md:h-auto relative z-10",
-                            avgPoints !== null && avgGrade !== null ? "-mt-16 md:mt-0" : ""
-                        )}>
-                            <SemesterRadar subjects={semester.subjects} />
-                        </div>
+                        <SemesterRadar subjects={semester.subjects} />
                     )}
                 </div>
             </header>

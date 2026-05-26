@@ -110,12 +110,14 @@ export default function Home() {
 
             {/* Header */}
             <header className="mb-12 animate-fade-in">
-                <div className="flex items-center gap-5">
-                    <h1 className="text-5xl font-bold tracking-tight text-[var(--color-text)]">Noten</h1>
-
-                    {totalAvgGrade !== null && totalAvgPoints !== null && (
-                        <GradeRing grade={totalAvgGrade} />
-                    )}
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-5">
+                        <h1 className="text-5xl font-bold tracking-tight text-[var(--color-text)]">Noten</h1>
+                        {totalAvgGrade !== null && totalAvgPoints !== null && (
+                            <GradeRing grade={totalAvgGrade} />
+                        )}
+                    </div>
+                    <ThemeToggle />
                 </div>
             </header>
 
@@ -129,7 +131,6 @@ export default function Home() {
                 <div className="flex justify-between items-center mb-8">
                     <h2 className="text-xl font-bold text-[var(--color-text)] tracking-tight">Meine Semester</h2>
                     <div className="flex items-center gap-2">
-                        <ThemeToggle />
                         <button
                             onClick={() => setIsAdding(true)}
                             className="w-9 h-9 flex items-center justify-center rounded-full bg-[var(--glass-bg)] border border-[var(--glass-border)] text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-[var(--glass-hover)] transition-all duration-200 active:scale-90"
@@ -187,7 +188,7 @@ export default function Home() {
                 )}
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {semesters.map(sem => (
+                    {[...semesters].reverse().map(sem => (
                         <SemesterCard key={sem.id} semester={sem} />
                     ))}
 

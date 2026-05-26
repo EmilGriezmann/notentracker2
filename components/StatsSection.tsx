@@ -193,7 +193,7 @@ export default function StatsSection({ semesters }: Props) {
         return Array.from(byName.entries())
             .map(([name, { totalAvg, count }]) => ({
                 title: name,
-                subtitle: `${count} ${count === 1 ? 'Semester' : 'Semester'}`,
+                subtitle: '',
                 value: Math.round(totalAvg / count),
                 unit: 'Pkt',
             }))
