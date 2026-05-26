@@ -99,15 +99,16 @@ export default function SemesterRadar({ subjects }: Props) {
 
     return (
         <div
-            className="w-full h-full min-h-[210px] cursor-pointer"
-            style={{ perspective: '800px' }}
+            className="w-full cursor-pointer"
+            style={{ perspective: '800px', minHeight: '210px' }}
             onClick={handleFlip}
         >
             <div
-                className="relative w-full h-full transition-transform duration-500"
+                className="relative w-full transition-transform duration-500"
                 style={{
                     transformStyle: 'preserve-3d',
                     transform: flipped ? 'rotateY(180deg)' : 'rotateY(0deg)',
+                    height: '210px',
                 }}
             >
                 {/* Front: Top 3 */}

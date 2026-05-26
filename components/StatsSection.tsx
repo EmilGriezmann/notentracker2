@@ -256,7 +256,7 @@ export default function StatsSection({ semesters }: Props) {
             {bestKlausuren.length > 0 && (
                 <FlipRankCard
                     headingFront="Beste Klausuren"
-                    headingBack="Schlechteste Klausuren"
+                    headingBack="Schlechteste"
                     itemsFront={bestKlausuren}
                     itemsBack={worstKlausuren}
                 />
@@ -264,7 +264,7 @@ export default function StatsSection({ semesters }: Props) {
             {bestFaecher.length > 0 && (
                 <FlipRankCard
                     headingFront="Beste Fächer"
-                    headingBack="Schlechteste Fächer"
+                    headingBack="Schlechteste"
                     itemsFront={bestFaecher}
                     itemsBack={worstFaecher}
                 />

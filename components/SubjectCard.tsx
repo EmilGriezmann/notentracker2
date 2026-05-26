@@ -17,10 +17,6 @@ interface Props {
 
 export default function SubjectCard({ subject, onChange, onDelete, onEdit, isExpanded, onToggleExpand }: Props) {
     const [localQuarters, setLocalQuarters] = useState(subject.quarters);
-    const [overrideInput, setOverrideInput] = useState(
-        subject.finalOverride !== undefined ? String(subject.finalOverride) : ''
-    );
-    const [isEditingOverride, setIsEditingOverride] = useState(false);
 
     // Swipe state
     const [swipeX, setSwipeX] = useState(0);
@@ -31,8 +27,6 @@ export default function SubjectCard({ subject, onChange, onDelete, onEdit, isExp
 
     useEffect(() => {
         setLocalQuarters(subject.quarters);
-        setOverrideInput(subject.finalOverride !== undefined ? String(subject.finalOverride) : '');
-        setIsEditingOverride(false);
     }, [subject.quarters, subject.finalOverride]);
 
     const averagePoints = calculateSubjectAverage(subject);
@@ -46,12 +40,9 @@ export default function SubjectCard({ subject, onChange, onDelete, onEdit, isExp
         onChange({ ...subject, quarters: newQuarters });
     };
 
-    const commitOverride = () => {
-        const trimmed = overrideInput.trim();
-        const parsed = trimmed === '' ? undefined : Number.parseInt(trimmed, 10);
-        if (parsed !== undefined && (Number.isNaN(parsed) || parsed < 0 || parsed > 15)) return;
-        onChange({ ...subject, finalOverride: parsed === undefined ? undefined : parsed });
-        setIsEditingOverride(false);
+    const handleOverrideChange = (v: string) => {
+        const parsed = v === '' ? undefined : Number(v);
+        onChange({ ...subject, finalOverride: parsed });
     };
 
     // Swipe handlers (disabled when expanded)
@@ -118,36 +109,24 @@ export default function SubjectCard({ subject, onChange, onDelete, onEdit, isExp
                             <Edit2 size={13} />
                         </button>
 
-                        {isEditingOverride ? (
-                            <input
-                                autoFocus
-                                type="number"
-                                min="0" max="15" step="1"
-                                value={overrideInput}
-                                onChange={(e) => setOverrideInput(e.target.value)}
-                                onBlur={commitOverride}
-                                onKeyDown={(e) => {
-                                    if (e.key === 'Enter') { e.preventDefault(); commitOverride(); }
-                                    if (e.key === 'Escape') {
-                                        setIsEditingOverride(false);
-                                        setOverrideInput(subject.finalOverride !== undefined ? String(subject.finalOverride) : '');
-                                    }
-                                }}
-                                className="w-14 bg-[var(--input-bg)] border border-[var(--glass-border)] rounded-md px-2 py-1 text-center text-base sm:text-lg font-bold text-[var(--color-text)] outline-none focus:border-primary/60"
-                                placeholder="–"
-                            />
-                        ) : (
-                            <button
-                                onClick={(e) => { e.stopPropagation(); setIsEditingOverride(true); }}
-                                className={clsx(
-                                    "text-base sm:text-lg font-bold tabular-nums px-2 py-1 rounded-md transition-colors",
-                                    subject.finalOverride !== undefined ? "text-primary" : "text-[var(--color-text)]"
-                                )}
-                                title="Zeugnisnote überschreiben (0-15 Punkte)"
-                            >
+                        <div className="relative" onClick={e => e.stopPropagation()}>
+                            <span className={clsx(
+                                "text-base sm:text-lg font-bold tabular-nums px-2 py-1 pointer-events-none",
+                                subject.finalOverride !== undefined ? "text-primary" : "text-[var(--color-text)]"
+                            )}>
                                 {roundedPoints !== null ? roundedPoints : '—'}
-                            </button>
-                        )}
+                            </span>
+                            <select
+                                className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                                value={subject.finalOverride !== undefined ? subject.finalOverride : ''}
+                                onChange={e => handleOverrideChange(e.target.value)}
+                            >
+                                <option value="">—</option>
+                                {Array.from({ length: 16 }, (_, i) => (
+                                    <option key={i} value={i}>{i}</option>
+                                ))}
+                            </select>
+                        </div>
 
                         <button
                             type="button"
