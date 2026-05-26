@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Semester } from '@/types';
 import { calculateQuarterAverage, calculateSubjectAverage, pointsToGrade } from '@/lib/store';
 
@@ -101,9 +101,10 @@ function TrendCard({ data }: { data: TrendPoint[] }) {
     );
 }
 
-// ─── Shared compact rank card ─────────────────────────────────────────────────
+// ─── Flip rank card ───────────────────────────────────────────────────────────
 
-const RANK_COLORS = ['#0a84ff', '#30d158', '#ff9f0a'];
+const RANK_COLORS_TOP = ['#0a84ff', '#30d158', '#ff9f0a'];
+const RANK_COLORS_FLOP = ['#ff453a', '#ff9f0a', '#ffd60a'];
 
 interface RankItem {
     title: string;
@@ -112,9 +113,9 @@ interface RankItem {
     unit: string;
 }
 
-function CompactRankCard({ heading, items }: { heading: string; items: RankItem[] }) {
+function RankFace({ heading, items, colors }: { heading: string; items: RankItem[]; colors: string[] }) {
     return (
-        <div className="rounded-3xl bg-[var(--glass-bg)] border border-[var(--glass-border)] p-4 shadow-2xl">
+        <div className="p-4 h-full flex flex-col">
             <span className="text-[10px] font-semibold uppercase tracking-widest text-[var(--color-text-muted)] mb-3 block">
                 {heading}
             </span>
@@ -123,7 +124,7 @@ function CompactRankCard({ heading, items }: { heading: string; items: RankItem[
                     <div key={i} className="flex items-center gap-2">
                         <div
                             className="w-4 h-4 rounded-full flex-shrink-0 flex items-center justify-center text-[9px] font-bold text-white"
-                            style={{ background: RANK_COLORS[i] }}
+                            style={{ background: colors[i] }}
                         >
                             {i + 1}
                         </div>
@@ -146,6 +147,36 @@ function CompactRankCard({ heading, items }: { heading: string; items: RankItem[
     );
 }
 
+function FlipRankCard({ headingFront, headingBack, itemsFront, itemsBack }: {
+    headingFront: string;
+    headingBack: string;
+    itemsFront: RankItem[];
+    itemsBack: RankItem[];
+}) {
+    const [flipped, setFlipped] = useState(false);
+
+    const faceClass = "absolute inset-0 rounded-3xl bg-[var(--glass-bg)] border border-[var(--glass-border)] shadow-2xl overflow-hidden cursor-pointer hover:bg-[var(--glass-hover)] transition-colors";
+
+    return (
+        <div className="relative h-[168px]" style={{ perspective: '800px' }} onClick={() => setFlipped(f => !f)}>
+            <div
+                className="w-full h-full transition-transform duration-500"
+                style={{
+                    transformStyle: 'preserve-3d',
+                    transform: flipped ? 'rotateY(180deg)' : 'rotateY(0deg)',
+                }}
+            >
+                <div className={faceClass} style={{ backfaceVisibility: 'hidden' }}>
+                    <RankFace heading={headingFront} items={itemsFront} colors={RANK_COLORS_TOP} />
+                </div>
+                <div className={faceClass} style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}>
+                    <RankFace heading={headingBack} items={itemsBack} colors={RANK_COLORS_FLOP} />
+                </div>
+            </div>
+        </div>
+    );
+}
+
 // ─── Stats Section ────────────────────────────────────────────────────────────
 
 interface Props { semesters: Semester[] }
@@ -162,7 +193,7 @@ export default function StatsSection({ semesters }: Props) {
         return points;
     }, [semesters]);
 
-    const bestKlausuren = useMemo<RankItem[]>(() => {
+    const allKlausuren = useMemo(() => {
         const results: { subjectName: string; semesterName: string; quarterName: string; grade: number }[] = [];
         semesters.forEach(sem => {
             sem.subjects.filter(s => s.assessmentType === 'WRITTEN').forEach(sub => {
@@ -173,13 +204,24 @@ export default function StatsSection({ semesters }: Props) {
                 });
             });
         });
-        return results
-            .sort((a, b) => b.grade - a.grade)
-            .slice(0, 3)
-            .map(r => ({ title: r.subjectName, subtitle: `${r.semesterName} · ${r.quarterName}`, value: r.grade, unit: 'Pkt' }));
+        return results;
     }, [semesters]);
 
-    const bestFaecher = useMemo<RankItem[]>(() => {
+    const bestKlausuren = useMemo<RankItem[]>(() =>
+        [...allKlausuren]
+            .sort((a, b) => b.grade - a.grade)
+            .slice(0, 3)
+            .map(r => ({ title: r.subjectName, subtitle: `${r.semesterName} · ${r.quarterName}`, value: r.grade, unit: 'Pkt' })),
+        [allKlausuren]);
+
+    const worstKlausuren = useMemo<RankItem[]>(() =>
+        [...allKlausuren]
+            .sort((a, b) => a.grade - b.grade)
+            .slice(0, 3)
+            .map(r => ({ title: r.subjectName, subtitle: `${r.semesterName} · ${r.quarterName}`, value: r.grade, unit: 'Pkt' })),
+        [allKlausuren]);
+
+    const allFaecher = useMemo(() => {
         const byName = new Map<string, { totalAvg: number; count: number }>();
         semesters.forEach(sem => {
             sem.subjects.forEach(sub => {
@@ -190,24 +232,43 @@ export default function StatsSection({ semesters }: Props) {
                 else byName.set(sub.name, { totalAvg: avg, count: 1 });
             });
         });
-        return Array.from(byName.entries())
-            .map(([name, { totalAvg, count }]) => ({
-                title: name,
-                subtitle: '',
-                value: Math.round(totalAvg / count),
-                unit: 'Pkt',
-            }))
-            .sort((a, b) => b.value - a.value)
-            .slice(0, 3);
+        return Array.from(byName.entries()).map(([name, { totalAvg, count }]) => ({
+            title: name,
+            subtitle: '',
+            value: Math.round(totalAvg / count),
+            unit: 'Pkt',
+        }));
     }, [semesters]);
+
+    const bestFaecher = useMemo<RankItem[]>(() =>
+        [...allFaecher].sort((a, b) => b.value - a.value).slice(0, 3),
+        [allFaecher]);
+
+    const worstFaecher = useMemo<RankItem[]>(() =>
+        [...allFaecher].sort((a, b) => a.value - b.value).slice(0, 3),
+        [allFaecher]);
 
     if (trendData.length === 0 && bestKlausuren.length === 0 && bestFaecher.length === 0) return null;
 
     return (
         <section className="mb-10 animate-slide-up grid grid-cols-2 sm:grid-cols-4 gap-4">
             {trendData.length > 0 && <TrendCard data={trendData} />}
-            {bestKlausuren.length > 0 && <CompactRankCard heading="Beste Klausuren" items={bestKlausuren} />}
-            {bestFaecher.length > 0 && <CompactRankCard heading="Beste Fächer" items={bestFaecher} />}
+            {bestKlausuren.length > 0 && (
+                <FlipRankCard
+                    headingFront="Beste Klausuren"
+                    headingBack="Schlechteste Klausuren"
+                    itemsFront={bestKlausuren}
+                    itemsBack={worstKlausuren}
+                />
+            )}
+            {bestFaecher.length > 0 && (
+                <FlipRankCard
+                    headingFront="Beste Fächer"
+                    headingBack="Schlechteste Fächer"
+                    itemsFront={bestFaecher}
+                    itemsBack={worstFaecher}
+                />
+            )}
         </section>
     );
 }

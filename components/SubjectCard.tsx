@@ -15,18 +15,12 @@ interface Props {
     onToggleExpand: () => void;
 }
 
-interface ActiveField {
-    qIndex: number;
-    type: 'somi' | 'written';
-}
-
 export default function SubjectCard({ subject, onChange, onDelete, onEdit, isExpanded, onToggleExpand }: Props) {
     const [localQuarters, setLocalQuarters] = useState(subject.quarters);
     const [overrideInput, setOverrideInput] = useState(
         subject.finalOverride !== undefined ? String(subject.finalOverride) : ''
     );
     const [isEditingOverride, setIsEditingOverride] = useState(false);
-    const [activeField, setActiveField] = useState<ActiveField | null>(null);
 
     // Swipe state
     const [swipeX, setSwipeX] = useState(0);
@@ -41,22 +35,15 @@ export default function SubjectCard({ subject, onChange, onDelete, onEdit, isExp
         setIsEditingOverride(false);
     }, [subject.quarters, subject.finalOverride]);
 
-    useEffect(() => {
-        if (!isExpanded) setActiveField(null);
-    }, [isExpanded]);
-
     const averagePoints = calculateSubjectAverage(subject);
     const roundedPoints = averagePoints !== null ? Math.round(averagePoints) : null;
 
-    const handlePickerSelect = (value: number | undefined) => {
-        if (!activeField) return;
-        const { qIndex, type } = activeField;
+    const handleGradeChange = (qIndex: number, type: 'somi' | 'written', value: number | undefined) => {
         const newQuarters = localQuarters.map((q, i) =>
             i === qIndex ? { ...q, [type]: value } : q
         );
         setLocalQuarters(newQuarters);
         onChange({ ...subject, quarters: newQuarters });
-        setActiveField(null);
     };
 
     const commitOverride = () => {
@@ -87,12 +74,6 @@ export default function SubjectCard({ subject, onChange, onDelete, onEdit, isExp
         isSwiping.current = false;
         setSwipeX(swipeX >= 80 ? 80 : 0);
     };
-
-    const activeValue = activeField
-        ? (activeField.type === 'somi'
-            ? localQuarters[activeField.qIndex]?.somi
-            : localQuarters[activeField.qIndex]?.written)
-        : undefined;
 
     return (
         <div className="relative overflow-hidden rounded-3xl" ref={cardRef}>
@@ -185,8 +166,6 @@ export default function SubjectCard({ subject, onChange, onDelete, onEdit, isExp
                 {/* Grades section */}
                 {isExpanded && (
                     <div className="border-t border-[var(--glass-border)] animate-expand">
-
-                        {/* Quarter columns */}
                         <div className="grid grid-cols-2">
                             {localQuarters.map((q, qIdx) => (
                                 <div key={q.id || qIdx} className={clsx("p-3", qIdx === 0 && "border-r border-[var(--glass-border)]")}>
@@ -197,60 +176,19 @@ export default function SubjectCard({ subject, onChange, onDelete, onEdit, isExp
                                         <GradeCell
                                             label="Somi"
                                             value={q.somi}
-                                            active={activeField?.qIndex === qIdx && activeField?.type === 'somi'}
-                                            onTap={() => setActiveField(
-                                                activeField?.qIndex === qIdx && activeField?.type === 'somi'
-                                                    ? null
-                                                    : { qIndex: qIdx, type: 'somi' }
-                                            )}
+                                            onChange={v => handleGradeChange(qIdx, 'somi', v)}
                                         />
                                         {subject.assessmentType === 'WRITTEN' && (
                                             <GradeCell
                                                 label="Klausur"
                                                 value={q.written}
-                                                active={activeField?.qIndex === qIdx && activeField?.type === 'written'}
-                                                onTap={() => setActiveField(
-                                                    activeField?.qIndex === qIdx && activeField?.type === 'written'
-                                                        ? null
-                                                        : { qIndex: qIdx, type: 'written' }
-                                                )}
+                                                onChange={v => handleGradeChange(qIdx, 'written', v)}
                                             />
                                         )}
                                     </div>
                                 </div>
                             ))}
                         </div>
-
-                        {/* Picker */}
-                        {activeField !== null && (
-                            <div className="border-t border-[var(--glass-border)] p-3 animate-expand">
-                                <div className="grid grid-cols-4 gap-2 mb-2">
-                                    {Array.from({ length: 16 }, (_, i) => (
-                                        <button
-                                            key={i}
-                                            type="button"
-                                            onClick={() => handlePickerSelect(i)}
-                                            className={clsx(
-                                                "h-11 rounded-xl text-base font-bold transition-all active:scale-90",
-                                                activeValue === i
-                                                    ? 'bg-primary text-white shadow-lg scale-105'
-                                                    : 'bg-[var(--input-bg)] text-[var(--color-text)] hover:bg-[var(--glass-hover)]'
-                                            )}
-                                        >
-                                            {i}
-                                        </button>
-                                    ))}
-                                </div>
-                                <button
-                                    type="button"
-                                    onClick={() => handlePickerSelect(undefined)}
-                                    className="w-full py-2 flex items-center justify-center gap-1.5 text-xs text-[var(--color-text-muted)] hover:text-danger transition-colors"
-                                >
-                                    <X size={11} />
-                                    Eintrag löschen
-                                </button>
-                            </div>
-                        )}
                     </div>
                 )}
             </div>
@@ -258,30 +196,35 @@ export default function SubjectCard({ subject, onChange, onDelete, onEdit, isExp
     );
 }
 
-function GradeCell({ label, value, active, onTap }: {
+function GradeCell({ label, value, onChange }: {
     label: string;
     value: number | undefined;
-    active: boolean;
-    onTap: () => void;
+    onChange: (v: number | undefined) => void;
 }) {
     return (
-        <button
-            type="button"
-            onClick={onTap}
-            className={clsx(
-                "flex-1 rounded-xl p-1.5 flex flex-col items-center transition-all active:scale-95",
-                active
-                    ? 'bg-primary/15 ring-2 ring-primary/40'
-                    : 'bg-[var(--input-bg)] hover:bg-[var(--glass-hover)]'
-            )}
-        >
-            <span className="text-[9px] text-[var(--color-text-muted)] uppercase mb-1 tracking-wide">{label}</span>
+        <div className="flex-1 rounded-xl bg-[var(--input-bg)] p-1.5 flex flex-col items-center relative">
+            <span className="text-[9px] text-[var(--color-text-muted)] uppercase mb-1 tracking-wide pointer-events-none">
+                {label}
+            </span>
             <span className={clsx(
-                "text-sm font-bold py-0.5 leading-none",
-                active ? 'text-primary' : value !== undefined ? 'text-[var(--color-text)]' : 'text-[var(--color-text-muted)]'
+                "text-sm font-bold py-0.5 leading-none pointer-events-none",
+                value !== undefined ? 'text-[var(--color-text)]' : 'text-[var(--color-text-muted)]'
             )}>
                 {value !== undefined ? value : '—'}
             </span>
-        </button>
+            <select
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                value={value !== undefined ? value : ''}
+                onChange={e => {
+                    const v = e.target.value;
+                    onChange(v === '' ? undefined : Number(v));
+                }}
+            >
+                <option value="">—</option>
+                {Array.from({ length: 16 }, (_, i) => (
+                    <option key={i} value={i}>{i}</option>
+                ))}
+            </select>
+        </div>
     );
 }
